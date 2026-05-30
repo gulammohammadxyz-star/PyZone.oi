@@ -635,6 +635,23 @@
     display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px;
   }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyC4xglOIfjlUKzz42asNDNvLfJDKV-dU0M",
+    authDomain: "pyzone.firebaseapp.com",
+    projectId: "pyzone",
+    storageBucket: "pyzone.firebasestorage.app",
+    messagingSenderId: "697699026020",
+    appId: "1:697699026020:web:50344bb245402d99f5cb71"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
 </head>
 <body>
 
@@ -5085,6 +5102,7 @@ function submitPyCode() {
         solvedChallenges.push(currentChallenge.id);
         localStorage.setItem('cz_solved', JSON.stringify(solvedChallenges));
         updateStreak();
+        saveProgress();
       }
     } else {
       out.textContent = `❌ Wrong Answer\nExpected: ${expected}\nGot: ${result || '(no output)'}`;
@@ -5126,6 +5144,7 @@ function submitJavaCode() {
         solvedJavaChallenges.push(currentJavaChallenge.id);
         localStorage.setItem('cz_java_solved', JSON.stringify(solvedJavaChallenges));
         updateStreak();
+        saveProgress();
       }
     } else {
       out.textContent = `❌ Wrong Answer\nExpected: ${expected}\nGot: ${result || '(no output)'}`;
@@ -5578,7 +5597,7 @@ function showJavaQuizResult() {
 }
 
 // ═══════════════════════════════════════════════════════
-//   AUTH SYSTEM
+//   AUTH SYSTEM — Firebase
 // ═══════════════════════════════════════════════════════
 function openModal(type) {
   document.getElementById('auth-modal').style.display = 'flex';
@@ -5594,50 +5613,118 @@ function closeModal() { document.getElementById('auth-modal').style.display = 'n
 function closeModalOnBg(e) { if(e.target === document.getElementById('auth-modal')) closeModal(); }
 function switchForm(type) { openModal(type); }
 
+// ── Login with Email ──
 function loginUser() {
   const email = document.getElementById('login-email').value.trim();
-  const pass = document.getElementById('login-pass').value;
-  const err = document.getElementById('login-error');
-  if (!email || !pass) { err.textContent = 'Please fill all fields.'; err.style.display='block'; return; }
-  const stored = JSON.parse(localStorage.getItem('cz_users') || '{}');
-  if (!stored[email] || stored[email].pass !== btoa(pass)) {
-    err.textContent = 'Invalid email or password.'; err.style.display='block'; return;
-  }
-  currentUser = { email, name: stored[email].name };
-  localStorage.setItem('cz_user', JSON.stringify(currentUser));
-  isPro = stored[email].pro || false;
-  if (isPro) localStorage.setItem('cz_pro', 'true');
-  closeModal(); updateAuthUI();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-error');
+  err.style.display = 'none';
+  if (!email || !pass) { err.textContent = 'Please fill all fields.'; err.style.display = 'block'; return; }
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(() => { closeModal(); })
+    .catch(e => { err.textContent = firebaseErrMsg(e.code); err.style.display = 'block'; });
 }
 
+// ── Sign Up ──
 function signupUser() {
-  const name = document.getElementById('signup-name').value.trim();
+  const name  = document.getElementById('signup-name').value.trim();
   const email = document.getElementById('signup-email').value.trim();
-  const pass = document.getElementById('signup-pass').value;
-  const err = document.getElementById('signup-error');
-  if (!name || !email || !pass) { err.textContent = 'Please fill all fields.'; err.style.display='block'; return; }
-  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.style.display='block'; return; }
-  const stored = JSON.parse(localStorage.getItem('cz_users') || '{}');
-  if (stored[email]) { err.textContent = 'Email already registered.'; err.style.display='block'; return; }
-  stored[email] = { name, pass: btoa(pass), pro: false };
-  localStorage.setItem('cz_users', JSON.stringify(stored));
-  currentUser = { email, name };
-  localStorage.setItem('cz_user', JSON.stringify(currentUser));
-  closeModal(); updateAuthUI();
+  const pass  = document.getElementById('signup-pass').value;
+  const err   = document.getElementById('signup-error');
+  err.style.display = 'none';
+  if (!name || !email || !pass) { err.textContent = 'Please fill all fields.'; err.style.display = 'block'; return; }
+  if (pass.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.style.display = 'block'; return; }
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(cred => {
+      return Promise.all([
+        cred.user.updateProfile({ displayName: name }),
+        db.collection('users').doc(cred.user.uid).set({
+          name, email, pro: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+      ]);
+    })
+    .then(() => { closeModal(); })
+    .catch(e => { err.textContent = firebaseErrMsg(e.code); err.style.display = 'block'; });
 }
 
+// ── Google Sign-In ──
 function loginGoogle() {
-  currentUser = { email: 'demo@google.com', name: 'Google User' };
-  localStorage.setItem('cz_user', JSON.stringify(currentUser));
-  closeModal(); updateAuthUI();
-  alert('✅ Signed in as Google User (demo mode)');
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then(cred => {
+      const user = cred.user;
+      return db.collection('users').doc(user.uid).set({
+        name: user.displayName, email: user.email, pro: false
+      }, { merge: true });
+    })
+    .then(() => { closeModal(); })
+    .catch(e => { alert('Google sign-in failed: ' + e.message); });
 }
 
+// ── Sign Out ──
 function signOutUser() {
-  currentUser = null; isPro = false;
-  localStorage.removeItem('cz_user'); localStorage.removeItem('cz_pro');
-  updateAuthUI(); toggleDropdown();
-  showPage('home');
+  auth.signOut().then(() => {
+    currentUser = null; isPro = false;
+    solvedChallenges = []; solvedJavaChallenges = [];
+    toggleDropdown();
+    updateAuthUI();
+    showPage('home');
+  });
+}
+
+// ── Auth State Observer ──
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = { uid: user.uid, email: user.email, name: user.displayName || user.email.split('@')[0] };
+    // Load user data from Firestore
+    try {
+      const doc = await db.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        const data = doc.data();
+        isPro = data.pro || false;
+        if (isPro) localStorage.setItem('cz_pro', 'true');
+      }
+      // Load progress
+      const progress = await db.collection('progress').doc(user.uid).get();
+      if (progress.exists) {
+        const pd = progress.data();
+        solvedChallenges      = pd.solvedPy   || [];
+        solvedJavaChallenges  = pd.solvedJava || [];
+        streak                = pd.streak     || 0;
+      }
+    } catch(e) { console.log('Firestore load error:', e); }
+    updateAuthUI();
+  } else {
+    currentUser = null; isPro = false;
+    updateAuthUI();
+  }
+});
+
+// ── Save Progress to Firestore ──
+async function saveProgress() {
+  if (!currentUser) return;
+  try {
+    await db.collection('progress').doc(currentUser.uid).set({
+      solvedPy:   solvedChallenges,
+      solvedJava: solvedJavaChallenges,
+      streak,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch(e) { console.log('Save error:', e); }
+}
+
+// ── Friendly Error Messages ──
+function firebaseErrMsg(code) {
+  const msgs = {
+    'auth/user-not-found':       'No account found with this email.',
+    'auth/wrong-password':       'Incorrect password.',
+    'auth/email-already-in-use': 'This email is already registered.',
+    'auth/invalid-email':        'Please enter a valid email.',
+    'auth/weak-password':        'Password is too weak (min 6 chars).',
+    'auth/too-many-requests':    'Too many attempts. Try again later.',
+    'auth/invalid-credential':   'Invalid email or password.'
+  };
+  return msgs[code] || 'Something went wrong. Please try again.';
 }
 
 function updateAuthUI() {
@@ -5648,17 +5735,17 @@ function updateAuthUI() {
     userMenu.style.display = 'block';
     const initials = currentUser.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
     document.getElementById('user-avatar-btn').textContent = initials;
-    document.getElementById('dd-name').textContent = currentUser.name;
+    document.getElementById('dd-name').textContent  = currentUser.name;
     document.getElementById('dd-email').textContent = currentUser.email;
-    document.getElementById('profile-name').textContent = currentUser.name;
+    document.getElementById('profile-name').textContent  = currentUser.name;
     document.getElementById('profile-email').textContent = currentUser.email;
     document.getElementById('profile-avatar-big').textContent = initials;
     document.getElementById('nav-profile').style.display = 'block';
     if (isPro) {
-      document.getElementById('dd-pro-badge').style.display = 'block';
-      document.getElementById('dd-subscribe').style.display = 'none';
-      document.getElementById('pro-banner').style.display = 'none';
-      document.getElementById('profile-pro-badge').style.display = 'block';
+      document.getElementById('dd-pro-badge').style.display  = 'block';
+      document.getElementById('dd-subscribe').style.display  = 'none';
+      document.getElementById('pro-banner').style.display    = 'none';
+      document.getElementById('profile-pro-badge').style.display   = 'block';
       document.getElementById('profile-upgrade-btn').style.display = 'none';
     } else {
       document.getElementById('pro-banner').style.display = 'flex';
@@ -5667,6 +5754,7 @@ function updateAuthUI() {
     authBtns.style.display = 'flex';
     userMenu.style.display = 'none';
     document.getElementById('nav-profile').style.display = 'none';
+    document.getElementById('pro-banner').style.display  = 'none';
   }
   document.getElementById('streak-count').textContent = streak;
 }
@@ -5677,7 +5765,7 @@ function toggleDropdown() {
 }
 
 document.addEventListener('click', e => {
-  const dd = document.getElementById('user-dropdown');
+  const dd  = document.getElementById('user-dropdown');
   const btn = document.getElementById('user-avatar-btn');
   if (dd && !dd.contains(e.target) && e.target !== btn) dd.style.display = 'none';
 });
@@ -5694,6 +5782,7 @@ function updateStreak() {
     localStorage.setItem('cz_last_day', today);
     document.getElementById('streak-count').textContent = streak;
   }
+  saveProgress();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5701,14 +5790,16 @@ function updateStreak() {
 // ═══════════════════════════════════════════════════════
 function initiatePayment() {
   if (!currentUser) { closeModal(); openModal('login'); return; }
-  const email = currentUser.email;
-  const stored = JSON.parse(localStorage.getItem('cz_users') || '{}');
-  if (stored[email]) stored[email].pro = true;
-  localStorage.setItem('cz_users', JSON.stringify(stored));
-  isPro = true; localStorage.setItem('cz_pro', 'true');
-  closeModal();
-  alert('🎉 Welcome to CodeZone Pro! You now have full access to all solutions.\n\n(Demo: Pro activated for this session)');
-  updateAuthUI();
+  // Update Firestore
+  db.collection('users').doc(currentUser.uid).set({ pro: true }, { merge: true })
+    .then(() => {
+      isPro = true;
+      localStorage.setItem('cz_pro', 'true');
+      closeModal();
+      alert('🎉 Welcome to CodeZone Pro! You now have full access to all solutions.\n\n(Demo: Pro activated for your account)');
+      updateAuthUI();
+    })
+    .catch(e => alert('Error: ' + e.message));
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5774,7 +5865,7 @@ document.addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   renderPopularChallenges();
-  updateAuthUI();
+  // Auth state handled by onAuthStateChanged observer above
 });
 </script>
 </body>
