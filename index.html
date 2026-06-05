@@ -16,13 +16,14 @@
 <meta name="author" content="CodInOcean">
 <meta name="robots" content="index, follow">
 <meta name="theme-color" content="#080c18">
-<link rel="canonical" href="https://pyzone.web.app/">
+<link rel="canonical" href="https://codinocean.web.app/">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
 <!-- Open Graph (WhatsApp, Facebook preview) -->
 <meta property="og:title" content="CodInOcean — Python & Java Practice Lab">
 <meta property="og:description" content="180+ challenges, 20 projects, quizzes and lessons for Python and Java. Dive deep. Free forever.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://pyzone.web.app/">
+<meta property="og:url" content="https://codinocean.web.app/">
 <meta property="og:image" content="https://pyzone.web.app/og-image.png">
 <meta property="og:site_name" content="CodInOcean">
 
@@ -38,7 +39,7 @@
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "CodInOcean",
-  "url": "https://pyzone.web.app",
+  "url": "https://codinocean.web.app",
   "description": "CodInOcean — Free Python and Java coding practice platform. Dive deep into coding with challenges, projects, quizzes and lessons.",
   "potentialAction": {
     "@type": "SearchAction",
@@ -52,7 +53,7 @@
   "@context": "https://schema.org",
   "@type": "EducationalOrganization",
   "name": "CodInOcean",
-  "url": "https://pyzone.web.app",
+  "url": "https://codinocean.web.app",
   "description": "Free coding practice platform for Python and Java learners",
   "offers": [
     {
@@ -715,12 +716,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
   const firebaseConfig = {
-    apiKey: "AIzaSyC4xglOIfjlUKzz42asNDNvLfJDKV-dU0M",
-    authDomain: "pyzone.firebaseapp.com",
-    projectId: "pyzone",
-    storageBucket: "pyzone.firebasestorage.app",
-    messagingSenderId: "697699026020",
-    appId: "1:697699026020:web:50344bb245402d99f5cb71"
+    apiKey: "AIzaSyBeL642wS0EF-LuT-T2z7NUdyuWJenPZ9Q",
+    authDomain: "codinocean.firebaseapp.com",
+    projectId: "codinocean",
+    storageBucket: "codinocean.firebasestorage.app",
+    messagingSenderId: "258287788522",
+    appId: "1:258287788522:web:22021c1dd991c27134d293"
   };
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
@@ -803,7 +804,11 @@
       <div class="modal-sub">Sign in to sync your progress</div>
       <div class="auth-error" id="login-error"></div>
       <input class="auth-input" id="login-email" type="email" placeholder="Email address"/>
-      <input class="auth-input" id="login-pass" type="password" placeholder="Password"/>
+      <div style="position:relative">
+  <input class="auth-input" id="login-pass" type="password" placeholder="Password" style="padding-right:42px;margin-bottom:0"/>
+  <span onclick="togglePass('login-pass',this)" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted);font-size:1rem;user-select:none">👁</span>
+</div>
+<div style="margin-bottom:11px"></div>
       <button class="btn-auth" onclick="loginUser()">Sign In</button>
       <div class="auth-divider">or</div>
       <button class="btn-outline" style="width:100%;padding:10px" onclick="loginGoogle()">
@@ -817,7 +822,11 @@
       <div class="auth-error" id="signup-error"></div>
       <input class="auth-input" id="signup-name" type="text" placeholder="Your full name"/>
       <input class="auth-input" id="signup-email" type="email" placeholder="Email address"/>
-      <input class="auth-input" id="signup-pass" type="password" placeholder="Password (min 6 chars)"/>
+      <div style="position:relative">
+  <input class="auth-input" id="signup-pass" type="password" placeholder="Password (min 6 chars)" style="padding-right:42px;margin-bottom:0"/>
+  <span onclick="togglePass('signup-pass',this)" style="position:absolute;right:13px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted);font-size:1rem;user-select:none">👁</span>
+</div>
+<div style="margin-bottom:11px"></div>
       <button class="btn-auth" onclick="signupUser()">Create Account</button>
       <div class="auth-divider">or</div>
       <button class="btn-outline" style="width:100%;padding:10px" onclick="loginGoogle()">
@@ -4954,6 +4963,12 @@ let javaQuizState = { topicId: null, questions: [], current: 0, correct: 0, wron
 //   NAVIGATION & PAGE SYSTEM
 // ═══════════════════════════════════════════════════════
 function showPage(pageId) {
+  // Auth guard — redirect to login if not logged in (except home page)
+  if (!currentUser && pageId !== 'home') {
+    openModal('login');
+    showToast('Please login or sign up to access this feature 🔒');
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const page = document.getElementById('page-' + pageId);
   if (page) { page.classList.add('active'); currentPage = pageId; }
@@ -5063,6 +5078,7 @@ function renderPopularChallenges() {
 //   OPEN CHALLENGE IN EDITOR
 // ═══════════════════════════════════════════════════════
 function openChallenge(id, lang) {
+  if (!currentUser) { openModal('login'); showToast('Please login to solve challenges 🔒'); return; }
   previousPage = currentPage;
   if (lang === 'python') {
     const c = challenges.find(x => x.id === id);
@@ -5356,6 +5372,7 @@ function filterJavaProjects(filter, btn) {
 }
 
 function openProject(id, lang) {
+  if (!currentUser) { openModal('login'); showToast('Please login to view projects 🔒'); return; }
   const p = lang === 'python' ? pyProjects.find(x=>x.id===id) : javaProjects.find(x=>x.id===id);
   if (!p) return;
   previousPage = currentPage;
@@ -5946,6 +5963,31 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPopularChallenges();
   // Auth state handled by onAuthStateChanged observer above
 });
+
+function showToast(msg) {
+  const existing = document.getElementById('toast-msg');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'toast-msg';
+  toast.textContent = msg;
+  toast.style.cssText = `position:fixed;bottom:30px;left:50%;transform:translateX(-50%);
+    background:var(--card);border:1px solid var(--border);color:var(--text);
+    padding:12px 22px;border-radius:10px;font-size:0.86rem;z-index:9999;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);animation:fadeUp 0.3s ease`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+function togglePass(inputId, icon) {
+  const input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.textContent = '🙈';
+  } else {
+    input.type = 'password';
+    icon.textContent = '👁';
+  }
+}
 </script>
 </body>
 </html>
