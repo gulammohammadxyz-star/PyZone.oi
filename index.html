@@ -5910,19 +5910,30 @@ function renderProfile() {
     ...solvedJavaChallenges.map(id => javaChallenges.find(c=>c.id===id)?.topic).filter(Boolean)]);
   document.getElementById('stat-topics').textContent = topics.size;
   // Topic progress bars
-  const allTopics = ['Basics','Operators','Conditions','Loops','Strings','Lists','Functions','FileHandling','OOP'];
-  const barsHtml = allTopics.map(t => {
-    const pySolved = challenges.filter(c=>c.topic===t && solvedChallenges.includes(c.id)).length;
-    const pyTotal = challenges.filter(c=>c.topic===t).length;
-    const javaSolved = javaChallenges.filter(c=>c.topic===t && solvedJavaChallenges.includes(c.id)).length;
-    const javaTotal = javaChallenges.filter(c=>c.topic===t).length;
+  // Python topics and their Java equivalents
+  const topicMap = [
+    {label:'Basics',      pyTopic:'Basics',       javaTopic:'Basics'},
+    {label:'Operators',   pyTopic:'Operators',    javaTopic:'Operators'},
+    {label:'Conditions',  pyTopic:'Conditions',   javaTopic:'Conditions'},
+    {label:'Loops',       pyTopic:'Loops',        javaTopic:'Loops'},
+    {label:'Strings',     pyTopic:'Strings',      javaTopic:'Strings'},
+    {label:'Lists/Arrays',pyTopic:'Lists',        javaTopic:'Arrays'},
+    {label:'Functions/Methods',pyTopic:'Functions',javaTopic:'Methods'},
+    {label:'File Handling',pyTopic:'FileHandling',javaTopic:'FileHandling'},
+    {label:'OOP',         pyTopic:'OOP',          javaTopic:'OOP'},
+  ];
+  const barsHtml = topicMap.map(t => {
+    const pySolved = challenges.filter(c=>c.topic===t.pyTopic && solvedChallenges.includes(c.id)).length;
+    const pyTotal = challenges.filter(c=>c.topic===t.pyTopic).length;
+    const javaSolved = javaChallenges.filter(c=>c.topic===t.javaTopic && solvedJavaChallenges.includes(c.id)).length;
+    const javaTotal = javaChallenges.filter(c=>c.topic===t.javaTopic).length;
     const pyPct = pyTotal ? Math.round((pySolved/pyTotal)*100) : 0;
     const javaPct = javaTotal ? Math.round((javaSolved/javaTotal)*100) : 0;
     return `
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:5px">
-          <span>${t}</span>
-          <span style="color:var(--muted)">🐍 ${pySolved}/${pyTotal} · ☕ ${javaSolved}/${javaTotal}</span>
+          <span>${t.label}</span>
+          <span style="color:var(--muted)">🐍 ${pySolved}/${pyTotal} &nbsp; ☕ ${javaSolved}/${javaTotal}</span>
         </div>
         <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px">
           <div style="height:100%;width:${pyPct}%;background:var(--accent);border-radius:3px;transition:width 0.5s"></div>
