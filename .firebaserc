@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "firebase deploy --project codinocean": "codinocean"
+  },
+  "targets": {},
+  "etags": {}
+}
