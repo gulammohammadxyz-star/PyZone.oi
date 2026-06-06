@@ -5081,7 +5081,8 @@ function renderPopularChallenges() {
 //   OPEN CHALLENGE IN EDITOR
 // ═══════════════════════════════════════════════════════
 function openChallenge(id, lang) {
-  if (!currentUser) { openModal('login'); showToast('Please login to solve challenges 🔒'); return; }
+  if (authInitialized && !currentUser) { openModal('login'); showToast('Please login to solve challenges 🔒'); return; }
+  if (!authInitialized) { showToast('Loading... please try again in a moment ⏳'); return; }
   previousPage = currentPage;
   if (lang === 'python') {
     const c = challenges.find(x => x.id === id);
@@ -5375,7 +5376,8 @@ function filterJavaProjects(filter, btn) {
 }
 
 function openProject(id, lang) {
-  if (!currentUser) { openModal('login'); showToast('Please login to view projects 🔒'); return; }
+  if (authInitialized && !currentUser) { openModal('login'); showToast('Please login to view projects 🔒'); return; }
+  if (!authInitialized) { showToast('Loading... please try again in a moment ⏳'); return; }
   const p = lang === 'python' ? pyProjects.find(x=>x.id===id) : javaProjects.find(x=>x.id===id);
   if (!p) return;
   previousPage = currentPage;
