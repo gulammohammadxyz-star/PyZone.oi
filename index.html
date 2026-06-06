@@ -529,6 +529,7 @@
     border-radius: 10px; padding: 16px 18px; margin: 14px 0;
     font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
     line-height: 1.7; overflow-x: auto; position: relative;
+    white-space: pre-wrap; word-break: break-word;
   }
   .code-block .keyword { color: #c792ea; }
   .code-block .string { color: #c3e88d; }
@@ -4962,9 +4963,11 @@ let javaQuizState = { topicId: null, questions: [], current: 0, correct: 0, wron
 // ═══════════════════════════════════════════════════════
 //   NAVIGATION & PAGE SYSTEM
 // ═══════════════════════════════════════════════════════
+let authInitialized = false;
+
 function showPage(pageId) {
   // Auth guard — redirect to login if not logged in (except home page)
-  if (!currentUser && pageId !== 'home') {
+  if (authInitialized && !currentUser && pageId !== 'home') {
     openModal('login');
     showToast('Please login or sign up to access this feature 🔒');
     return;
@@ -5770,6 +5773,7 @@ function signOutUser() {
 
 // ── Auth State Observer ──
 auth.onAuthStateChanged(async user => {
+  authInitialized = true;
   if (user) {
     currentUser = { uid: user.uid, email: user.email, name: user.displayName || user.email.split('@')[0] };
     // Load user data from Firestore
@@ -5792,6 +5796,7 @@ auth.onAuthStateChanged(async user => {
     updateAuthUI();
   } else {
     currentUser = null; isPro = false;
+    authInitialized = true;
     updateAuthUI();
   }
 });
