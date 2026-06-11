@@ -4966,10 +4966,11 @@ let javaQuizState = { topicId: null, questions: [], current: 0, correct: 0, wron
 let authInitialized = false;
 
 function showPage(pageId) {
-  // Auth guard — redirect to login if not logged in (except home page)
-  if (authInitialized && !currentUser && pageId !== 'home') {
+  // Auth guard — only profile page requires login
+  const authRequiredPages = ['profile'];
+  if (authInitialized && !currentUser && authRequiredPages.includes(pageId)) {
     openModal('login');
-    showToast('Please login or sign up to access this feature 🔒');
+    showToast('Please login or sign up to access your profile 🔒');
     return;
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
